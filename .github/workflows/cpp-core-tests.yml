@@ -117,7 +117,8 @@ jobs:
         echo "Total: 68 tests covering all major GRF functionality"
         echo "Excluded: Only [characterization] and [NaN] tests"
 
-    - name: Environment Info
+    - name: Environment Info (Unix)
+      if: matrix.build_type == 'makefile'
       run: |
         echo "=== Environment Information ==="
         echo "OS: ${{ matrix.os }}"
@@ -129,7 +130,13 @@ jobs:
           echo "Compiler: $(clang++ --version | head -1)"
           echo "CPU: $(sysctl -n hw.ncpu) cores"
           echo "macOS Version: $(sw_vers -productVersion)"
-        elif [ "$RUNNER_OS" = "Windows" ]; then
-          echo "Compiler: MSVC"
-          echo "CPU cores: $env:NUMBER_OF_PROCESSORS"
         fi
+
+    - name: Environment Info (Windows)
+      if: matrix.build_type == 'cmake'
+      run: |
+        echo "=== Environment Information ==="
+        Write-Host "OS: ${{ matrix.os }}"
+        Write-Host "Runner: ${{ runner.os }}"
+        Write-Host "Compiler: MSVC"
+        Write-Host "CPU cores: $env:NUMBER_OF_PROCESSORS"
