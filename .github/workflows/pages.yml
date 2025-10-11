@@ -1,8 +1,8 @@
 name: Deploy gh-pages
 
 on:
-  push:
-    branches: ["master"]
+  # push:
+  #   branches: ["master"]
 
   workflow_dispatch:
 
