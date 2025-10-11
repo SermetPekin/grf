@@ -81,34 +81,12 @@ jobs:
     - name: Run ALL Tests That Should Pass (Windows)
       if: matrix.build_type == 'cmake'
       working-directory: core
-      continue-on-error: true
       run: |
         echo "=== Running ALL Tests That Should Pass ==="
         echo "Excluding [characterization] AND [NaN] tests"
-        echo "Using verbose reporter to identify any failing tests..."
-        .\build-cmake\Release\grf.exe "~[characterization]" "~[NaN]" --reporter console
+        .\build-cmake\Release\grf.exe "~[characterization]" "~[NaN]" --reporter compact
 
-    - name: Verify Test Count (Unix)
-      if: matrix.build_type == 'makefile'
-      working-directory: core
-      run: |
-        echo "=== Verifying We're Running All Expected Tests ==="
-        test_count=$(./build/grf_test '~[characterization]' '~[NaN]' --list-tests | grep "matching test cases" | grep -o '[0-9]\+')
-        echo "Found $test_count tests to run"
-        echo "These should be all tests that actually work (not prediction baselines or NaN hangers)"
-
-    - name: Verify Test Count (Windows)
-      if: matrix.build_type == 'cmake'
-      working-directory: core
-      run: |
-        echo "=== Verifying We're Running All Expected Tests ==="
-        Write-Host "Listing tests to verify count..."
-        .\build-cmake\Release\grf.exe "~[characterization]" "~[NaN]" --list-tests | Out-String -Width 4096
-        Write-Host ""
-        Write-Host "Expected: 68 tests that should all pass"
-        Write-Host "These are all tests excluding characterization and NaN tests"
-
-    - name: Test Summary - All 68 Tests Should Pass
+    - name: Test Summary - All Tests Should Pass
       run: |
         echo "=== SUCCESS: All 68 Core Tests Should Have Passed ==="
         echo "Platform: ${{ matrix.os }}"
