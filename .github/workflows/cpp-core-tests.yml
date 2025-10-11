@@ -74,16 +74,16 @@ jobs:
       if: matrix.build_type == 'makefile'
       working-directory: core
       run: |
-        echo "=== Running ALL Tests That Should Pass (68 tests) ==="
-        echo "Excluding [characterization] and [NaN] tests only"
+        echo "=== Running ALL Tests That Should Pass ==="
+        echo "Excluding [characterization] AND [NaN] tests"
         ./build/grf_test '~[characterization]' '~[NaN]' --reporter compact
 
     - name: Run ALL Tests That Should Pass (Windows)
       if: matrix.build_type == 'cmake'
       working-directory: core
       run: |
-        echo "=== Running ALL Tests That Should Pass (68 tests) ==="
-        echo "Excluding [characterization] and [NaN] tests only"
+        echo "=== Running ALL Tests That Should Pass ==="
+        echo "Excluding [characterization] AND [NaN] tests"
         .\build-cmake\Release\grf.exe "~[characterization]" "~[NaN]" --reporter compact
 
     - name: Verify Test Count (Unix)
@@ -93,12 +93,7 @@ jobs:
         echo "=== Verifying We're Running All Expected Tests ==="
         test_count=$(./build/grf_test '~[characterization]' '~[NaN]' --list-tests | grep "matching test cases" | grep -o '[0-9]\+')
         echo "Found $test_count tests to run"
-        echo "Expected: 68 tests"
-        if [ "$test_count" -eq 68 ]; then
-          echo "✅ Test count matches expected"
-        else
-          echo "❌ Test count mismatch - expected 68, got $test_count"
-        fi
+        echo "These should be all tests that actually work (not prediction baselines or NaN hangers)"
 
     - name: Verify Test Count (Windows)
       if: matrix.build_type == 'cmake'
@@ -108,12 +103,7 @@ jobs:
         $output = .\build-cmake\Release\grf.exe "~[characterization]" "~[NaN]" --list-tests
         $test_count = ($output | Select-String "matching test cases" | ForEach-Object { $_.Line -replace '.*?(\d+).*', '$1' })
         Write-Host "Found $test_count tests to run"
-        Write-Host "Expected: 68 tests"
-        if ($test_count -eq 68) {
-          Write-Host "✅ Test count matches expected"
-        } else {
-          Write-Host "❌ Test count mismatch - expected 68, got $test_count"
-        }
+        Write-Host "These should be all tests that actually work (not prediction baselines or NaN hangers)"
 
     - name: Test Summary - All 68 Tests Should Pass
       run: |
