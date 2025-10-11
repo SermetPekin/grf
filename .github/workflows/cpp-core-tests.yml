@@ -14,8 +14,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  passing-tests:
-    name: Passing Tests on ${{ matrix.os }}
+  working-tests:
+    name: Working Tests on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -70,25 +70,25 @@ jobs:
         cmake --build . --config Release
         dir
 
-    - name: Run ALL Tests That Should Pass (Unix)
+    - name: Run Working Tests (Unix)
       if: matrix.build_type == 'makefile'
       working-directory: core
       run: |
-        echo "=== Running ALL Tests That Should Pass ==="
+        echo "=== Running Working Tests ==="
         echo "Excluding [characterization] AND [NaN] tests"
         ./build/grf_test '~[characterization]' '~[NaN]' --reporter compact
 
-    - name: Run ALL Tests That Should Pass (Windows)
+    - name: Run Working Tests (Windows)
       if: matrix.build_type == 'cmake'
       working-directory: core
       run: |
-        echo "=== Running ALL Tests That Should Pass ==="
+        echo "=== Running Working Tests ==="
         echo "Excluding [characterization] AND [NaN] tests"
         .\build-cmake\Release\grf.exe "~[characterization]" "~[NaN]" --reporter compact
 
-    - name: Test Summary - All Tests Should Pass
+    - name: Test Summary
       run: |
-        echo "=== SUCCESS: All 68 Core Tests Should Have Passed ==="
+        echo "=== SUCCESS: All 68 Working Tests Passed ==="
         echo "Platform: ${{ matrix.os }}"
         echo "Build Type: ${{ matrix.build_type }}"
         echo "Compiler: ${{ matrix.compiler }}"
