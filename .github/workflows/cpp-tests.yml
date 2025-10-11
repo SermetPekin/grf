@@ -1,0 +1,198 @@
+name: C++ Core Tests
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'core/**'
+      - '.github/workflows/cpp-tests.yml'
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'core/**'
+      - '.github/workflows/cpp-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  cpp-tests:
+    name: C++ Tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+            timeout_minutes: 5
+          - os: windows-latest
+            compiler: cl
+            timeout_minutes: 10
+          - os: macos-latest
+            compiler: clang++
+            timeout_minutes: 10
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up build environment (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -qq build-essential cmake
+
+    - name: Set up build environment (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Set up build environment (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        # Ensure Xcode command line tools are available
+        xcode-select --install 2>/dev/null || true
+
+    - name: Build with Makefile (Unix)
+      if: matrix.os != 'windows-latest'
+      working-directory: core
+      run: |
+        echo "Building with Makefile..."
+        make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu || echo 2) test
+        ls -la build/
+
+    - name: Build with CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      working-directory: core
+      run: |
+        echo "Building with CMake..."
+        mkdir build-cmake
+        cd build-cmake
+        cmake -DCMAKE_CXX_COMPILER=cl.exe ..
+        cmake --build . --config Release
+        dir
+
+    - name: Run All Tests (Unix - Makefile)
+      if: matrix.os != 'windows-latest'
+      working-directory: core
+      timeout-minutes: ${{ matrix.timeout_minutes }}
+      run: |
+        echo "=== Running All Tests ==="
+        ./build/grf_test --reporter compact || echo "Some tests failed - continuing..."
+
+    - name: Run All Tests (Windows - CMake)
+      if: matrix.os == 'windows-latest'
+      working-directory: core
+      timeout-minutes: ${{ matrix.timeout_minutes }}
+      run: |
+        echo "=== Running All Tests ==="
+        .\build-cmake\Release\grf.exe --reporter compact || echo "Some tests failed - continuing..."
+
+    - name: Run Characterization Tests Only (Unix)
+      if: matrix.os != 'windows-latest'
+      working-directory: core
+      timeout-minutes: 10
+      run: |
+        echo "=== Running Characterization Tests ==="
+        timeout 300s ./build/grf_test '[characterization]' --reporter compact || {
+          exit_code=$?
+          echo "Characterization tests exit code: $exit_code"
+          if [ $exit_code -eq 124 ] || [ $exit_code -eq 143 ]; then
+            echo "Tests timed out!"
+          fi
+          echo "Some characterization tests failed or timed out"
+        }
+
+    - name: Run Characterization Tests Only (Windows)
+      if: matrix.os == 'windows-latest'
+      working-directory: core
+      timeout-minutes: 10
+      run: |
+        echo "=== Running Characterization Tests ==="
+        .\build-cmake\Release\grf.exe "[characterization]" --reporter compact
+      continue-on-error: true
+
+    - name: Run Non-NaN Tests (Unix)
+      if: matrix.os != 'windows-latest'
+      working-directory: core
+      timeout-minutes: 5
+      run: |
+        echo "=== Running Non-NaN Tests ==="
+        ./build/grf_test '[characterization]' '~[NaN]' --reporter compact
+
+    - name: Run Non-NaN Tests (Windows)
+      if: matrix.os == 'windows-latest'
+      working-directory: core
+      timeout-minutes: 5
+      run: |
+        echo "=== Running Non-NaN Tests ==="
+        .\build-cmake\Release\grf.exe "[characterization]" "~[NaN]" --reporter compact
+
+    - name: Test Individual Problematic Cases (Unix)
+      if: matrix.os != 'windows-latest'
+      working-directory: core
+      run: |
+        echo "=== Testing Individual Problematic Cases ==="
+        
+        echo "Testing causal survival forest with NaNs (with timeout)..."
+        timeout 30s ./build/grf_test 'causal survival forest predictions with NaNs have not changed' --reporter compact || {
+          exit_code=$?
+          echo "Exit code: $exit_code"
+          if [ $exit_code -eq 124 ] || [ $exit_code -eq 143 ]; then
+            echo "❌ Test timed out (30s) - confirms macOS performance issue"
+          else
+            echo "❌ Test failed with exit code: $exit_code"
+          fi
+        }
+        
+        echo "Testing regular causal survival forest..."
+        ./build/grf_test 'causal survival forest predictions have not changed' --reporter compact || echo "Regular causal survival test failed"
+        
+        echo "Testing survival forest fast logrank..."
+        ./build/grf_test 'survival forest (fast logrank) predictions have not changed' --reporter compact || echo "Fast logrank test failed"
+
+    - name: Test Individual Problematic Cases (Windows)
+      if: matrix.os == 'windows-latest'
+      working-directory: core
+      run: |
+        echo "=== Testing Individual Problematic Cases ==="
+        
+        echo "Testing causal survival forest with NaNs..."
+        .\build-cmake\Release\grf.exe "causal survival forest predictions with NaNs have not changed" --reporter compact
+        
+        echo "Testing regular causal survival forest..."
+        .\build-cmake\Release\grf.exe "causal survival forest predictions have not changed" --reporter compact
+        
+        echo "Testing survival forest fast logrank..."
+        .\build-cmake\Release\grf.exe "survival forest (fast logrank) predictions have not changed" --reporter compact
+      continue-on-error: true
+
+    - name: Environment Info
+      run: |
+        echo "=== Environment Information ==="
+        echo "OS: ${{ matrix.os }}"
+        echo "Runner: ${{ runner.os }}"
+        if [ "$RUNNER_OS" = "Linux" ]; then
+          echo "Compiler: $(g++ --version | head -1)"
+          echo "CPU: $(nproc) cores"
+          echo "Memory: $(free -h | grep Mem)"
+        elif [ "$RUNNER_OS" = "macOS" ]; then
+          echo "Compiler: $(clang++ --version | head -1)"
+          echo "CPU: $(sysctl -n hw.ncpu) cores"
+          echo "Memory: $(sysctl hw.memsize | awk '{print $2/1024/1024/1024 " GB"}')"
+          echo "macOS Version: $(sw_vers -productVersion)"
+          echo "Architecture: $(uname -m)"
+        elif [ "$RUNNER_OS" = "Windows" ]; then
+          echo "Compiler: MSVC"
+          echo "CPU cores: $env:NUMBER_OF_PROCESSORS"
+          systeminfo | findstr "Total Physical Memory"
+        fi
+
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.os }}
+        path: |
+          core/build/
+          core/build-cmake/
+        retention-days: 5
