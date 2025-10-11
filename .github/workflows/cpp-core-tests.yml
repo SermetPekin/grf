@@ -1,4 +1,4 @@
-name: C++ Core Tests - Passing Tests Only
+name: Tests (except NaN and characterization)
 
 on:
   push:
