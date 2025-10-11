@@ -101,9 +101,17 @@ jobs:
       run: |
         echo "=== Verifying We're Running All Expected Tests ==="
         $output = .\build-cmake\Release\grf.exe "~[characterization]" "~[NaN]" --list-tests
-        $test_count = ($output | Select-String "matching test cases" | ForEach-Object { $_.Line -replace '.*?(\d+).*', '$1' })
-        Write-Host "Found $test_count tests to run"
-        Write-Host "These should be all tests that actually work (not prediction baselines or NaN hangers)"
+        $lastLine = $output | Select-Object -Last 1
+        Write-Host "Last line of output: $lastLine"
+        if ($lastLine -match "(\d+) matching test cases") {
+            $test_count = $matches[1]
+            Write-Host "Found $test_count tests to run"
+            Write-Host "These should be all tests that actually work (not prediction baselines or NaN hangers)"
+        } else {
+            Write-Host "Could not parse test count from output"
+            Write-Host "Full output was:"
+            $output
+        }
 
     - name: Test Summary - All 68 Tests Should Pass
       run: |
