@@ -1,0 +1,88 @@
+# Simple Makefile for scratch files
+# 
+# Usage:
+#   make all                        # Compile all scratch files
+#   make scratch_causal_survival    # Compile the causal survival exploration
+#   make scratch_predict_method     # Compile the predict method exploration  
+#   make scratch_data_inspection    # Compile the data inspection tool
+#   make run_causal_survival        # Compile and run causal survival
+#   make run_predict_method         # Compile and run predict method
+#   make run_data_inspection        # Compile and run data inspection
+#   make clean                      # Clean up
+
+CXX = g++
+CXXFLAGS = -std=c++11 -Wall -O2 -pthread
+INCLUDES = -Icore/src -Icore/test -Icore/third_party
+
+# Core source directories
+SRCDIR = core/src
+TESTDIR = core/test
+BUILDDIR = build_scratch
+OBJDIR = $(BUILDDIR)/obj
+
+# Find all source files (excluding main files and tests)
+SRCFILES = $(shell find $(SRCDIR) -name "*.cpp" ! -name "*main*")
+TESTUTIL_FILES = $(shell find $(TESTDIR)/utilities -name "*.cpp")
+
+# Object files
+SRCOBJS = $(SRCFILES:$(SRCDIR)/%.cpp=$(OBJDIR)/src/%.o)
+TESTOBJS = $(TESTUTIL_FILES:$(TESTDIR)/%.cpp=$(OBJDIR)/test/%.o)
+
+# All scratch targets
+all: scratch_causal_survival scratch_predict_method scratch_data_inspection
+
+# Individual scratch targets
+scratch_causal_survival: $(BUILDDIR)/scratch_causal_survival
+scratch_predict_method: $(BUILDDIR)/scratch_predict_method  
+scratch_data_inspection: $(BUILDDIR)/scratch_data_inspection
+
+# Run targets
+run_causal_survival: scratch_causal_survival
+	cd core && ../$(BUILDDIR)/scratch_causal_survival
+
+run_predict_method: scratch_predict_method
+	./$(BUILDDIR)/scratch_predict_method
+
+run_data_inspection: scratch_data_inspection
+	cd core && ../$(BUILDDIR)/scratch_data_inspection
+
+# Build the scratch executables
+$(BUILDDIR)/scratch_causal_survival: scratch_causal_survival.cpp $(SRCOBJS) $(TESTOBJS) | $(BUILDDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $< $(SRCOBJS) $(TESTOBJS) -o $@
+
+$(BUILDDIR)/scratch_predict_method: scratch_predict_method.cpp $(SRCOBJS) | $(BUILDDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $< $(SRCOBJS) -o $@
+
+$(BUILDDIR)/scratch_data_inspection: scratch_data_inspection.cpp $(SRCOBJS) $(TESTOBJS) | $(BUILDDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $< $(SRCOBJS) $(TESTOBJS) -o $@
+
+# Build source object files
+$(OBJDIR)/src/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Build test utility object files  
+$(OBJDIR)/test/%.o: $(TESTDIR)/%.cpp | $(OBJDIR)
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Create directories
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+# Clean
+clean:
+	rm -rf $(BUILDDIR)
+
+.PHONY: clean run_causal_survival
+
+# Help
+help:
+	@echo "Available targets:"
+	@echo "  scratch_causal_survival  - Compile the causal survival exploration"
+	@echo "  run_causal_survival      - Compile and run the exploration"
+	@echo "  clean                    - Remove build files"
+	@echo "  help                     - Show this help"

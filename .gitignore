@@ -3,3 +3,7 @@
 
 # vscode files
 .vscode/
+
+# Scratch/exploration files - not for public repo
+*_PREDICT_*.md
+
