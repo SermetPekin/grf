@@ -17,6 +17,11 @@ Some helpful links for getting started:
 
 The repository first started as a fork of the [ranger](https://github.com/imbs-hl/ranger) repository -- we owe a great deal of thanks to the ranger authors for their useful and free package.
 
+
+
+## Class Diagram
+The class diagram is available in [docs/class_diagram.md](docs/class_diagram.md).  
+
 ### Installation
 
 The latest release of the package can be installed through CRAN:
